@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "clario": {
+      "command": "/Users/sankshay/.clario/runtime/node-darwin-arm64",
+      "args": [
+        "/Users/sankshay/.clario/mcp-server/index.js"
+      ],
+      "env": {
+        "CLAR_WORKSPACE": "/Users/sankshay/Downloads/INFOTACT",
+        "CLAR_API_URL": "https://hub.clario.chat",
+        "PATH": "/Users/sankshay/.clario/runtime:/Users/sankshay/.antigravity-ide/antigravity-ide/bin:/Users/sankshay/.antigravity-ide/antigravity-ide/bin:/Users/sankshay/.antigravity-ide/antigravity-ide/bin:/Users/sankshay/.antigravity-ide/antigravity-ide/bin:/Users/sankshay/.local/bin:/Users/sankshay/.nvm/versions/node/v22.3.0/bin:/opt/anaconda3/bin:/opt/anaconda3/condabin:/Users/sankshay/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Library/Frameworks/Python.framework/Versions/3.12/bin:/opt/local/bin:/opt/local/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/Applications/VMware Fusion.app/Contents/Public:/usr/local/share/dotnet:~/.dotnet/tools"
+      }
+    }
+  }
+}
