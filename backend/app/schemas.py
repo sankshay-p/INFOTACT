@@ -16,3 +16,16 @@ class RetrainRequest(BaseModel):
 class DriftSimulationRequest(BaseModel):
     feature_to_shift: str = Field(default="income", description="Feature to introduce drift into")
     shift_magnitude: float = Field(default=1.5, ge=0.1, le=3.0, description="Shift factor multiplier or addition")
+
+class SimulateCustomerRequest(BaseModel):
+    customer_id: Optional[int] = Field(default=None, description="Customer ID to simulate counterfactuals for")
+    income: Optional[float] = Field(default=65000.0, description="Annual income ($)")
+    browsing_minutes: Optional[float] = Field(default=25.0, description="Browsing time (mins)")
+    loyalty_score: Optional[float] = Field(default=5.0, description="Loyalty tier (1-10)")
+    days_since_last_purchase: Optional[float] = Field(default=14.0, description="Days since last order")
+    cart_value_history: Optional[float] = Field(default=75.0, description="Historical average basket size ($)")
+    seasonality_index: Optional[float] = Field(default=1.0, description="Seasonality demand index (0.5 - 2.0)")
+
+class CopilotQuestionRequest(BaseModel):
+    question: str = Field(..., description="Strategic marketing or econometrics question")
+

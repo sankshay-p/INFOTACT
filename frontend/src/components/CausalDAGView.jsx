@@ -1,9 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Plot from './PlotComponent';
-import { Network, GitBranch, CheckCircle2, Info, ArrowRight, ShieldCheck, Scale } from 'lucide-react';
+import { Network, GitBranch, CheckCircle2, Info, ArrowRight, ShieldCheck, Scale, UploadCloud, Download, FileSpreadsheet } from 'lucide-react';
 
-export default function CausalDAGView({ dagData, propensityData }) {
+export default function CausalDAGView({ dagData, propensityData, onUploadDataset, apiBase = 'http://127.0.0.1:8000' }) {
   const [selectedNode, setSelectedNode] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    setUploadMsg(null);
+    try {
+      if (onUploadDataset) {
+        const res = await onUploadDataset(file);
+        if (res?.success) {
+          setUploadMsg(`Successfully ingested ${file.name} and calibrated causal model!`);
+        }
+      }
+    } catch (err) {
+      setUploadMsg(`Error: ${err.message}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // Layout positions for SVG DAG
   const nodePositions = {
@@ -52,7 +74,7 @@ export default function CausalDAGView({ dagData, propensityData }) {
       {/* 1. Header */}
       <div className="section-header">
         <div>
-          <span className="section-eyebrow">WEEK 1 MILESTONE • CAUSAL IDENTIFICATION</span>
+          <span className="section-eyebrow">WEEK 1 MILESTONE • CAUSAL IDENTIFICATION & DATA INGESTION</span>
           <h2 className="section-title">Microsoft DoWhy Directed Acyclic Graph (DAG)</h2>
           <p className="section-desc">
             Mapping observational data into formal structural causal models. Isolating true price elasticity
@@ -60,6 +82,68 @@ export default function CausalDAGView({ dagData, propensityData }) {
           </p>
         </div>
       </div>
+
+      {/* 1.5 Historical Campaign Data Ingestion Card (Week 1 Requirement) */}
+      <div className="glass-panel p-5 mb-6">
+        <div className="flex-row items-center justify-between mb-3">
+          <div className="flex-row items-center gap-2">
+            <FileSpreadsheet size={18} className="text-cyan" />
+            <h3 className="card-heading">Historical Campaign Data Ingestion</h3>
+          </div>
+          <a
+            href={`${apiBase}/api/sample-csv`}
+            download="EconoCausal_Sample_Campaign_Dataset.csv"
+            className="btn btn-secondary btn-sm"
+          >
+            <Download size={13} />
+            <span>Download CSV Template</span>
+          </a>
+        </div>
+
+        <p className="text-muted text-sm mb-4">
+          Upload custom historical retail promotion logs to automatically generate the causal DAG,
+          identify confounders via the Backdoor Criterion, and estimate individual treatment effects.
+        </p>
+
+        <div className="flex-row items-center gap-4 flex-wrap">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept=".csv"
+            style={{ display: 'none' }}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="btn btn-primary btn-sm"
+          >
+            <UploadCloud size={14} className={isUploading ? 'spin-anim' : ''} />
+            <span>{isUploading ? 'Ingesting Dataset...' : 'Upload Campaign CSV'}</span>
+          </button>
+
+          <div className="flex-row items-center gap-2 flex-wrap text-xs text-dim">
+            <span className="font-semibold text-main">Required Confounders (W):</span>
+            <span className="badge-tag bg-dark-dim text-cyan">income</span>
+            <span className="badge-tag bg-dark-dim text-cyan">browsing_minutes</span>
+            <span className="badge-tag bg-dark-dim text-cyan">loyalty_score</span>
+            <span className="badge-tag bg-dark-dim text-cyan">days_since_last_purchase</span>
+            <span className="badge-tag bg-dark-dim text-cyan">cart_value_history</span>
+            <span className="badge-tag bg-dark-dim text-cyan">seasonality_index</span>
+            <span className="font-semibold text-main ml-2">Treatment (T):</span>
+            <span className="badge-tag bg-dark-dim text-amber">discount_offered</span>
+            <span className="font-semibold text-main ml-2">Outcome (Y):</span>
+            <span className="badge-tag bg-dark-dim text-emerald">conversion</span>
+          </div>
+        </div>
+
+        {uploadMsg && (
+          <div className="mt-3 text-xs font-mono text-emerald flex-row items-center gap-1">
+            <CheckCircle2 size={13} /> {uploadMsg}
+          </div>
+        )}
+      </div>
+
 
       {/* 2. Interactive SVG Causal Graph Panel */}
       <div className="dag-canvas-card glass-panel">

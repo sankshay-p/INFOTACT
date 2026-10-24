@@ -163,6 +163,44 @@ const apiRequest = async (path, options = {}) => {
     }
   };
 
+  const handleUploadDataset = async (file) => {
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`${API_BASE}/api/upload-dataset`, {
+        method: 'POST',
+        body: formData
+      });
+      if (!res.ok) {
+        const errJson = await res.json();
+        throw new Error(errJson.detail || 'Upload failed');
+      }
+      await fetchAllData();
+      return { success: true };
+    } catch (err) {
+      console.error('Upload dataset error:', err);
+      alert(`Upload error: ${err.message}`);
+      return { success: false, error: err.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAskCopilot = async (question) => {
+    try {
+      const res = await apiRequest('/api/executive-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+      return res;
+    } catch (err) {
+      console.error('Copilot error:', err);
+      return { answer: 'Could not fetch copilot answer.', category: 'Error' };
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="loading-screen">
@@ -205,6 +243,7 @@ const apiRequest = async (path, options = {}) => {
             onBudgetChange={handleBudgetChange}
             currentBudget={currentBudget}
             isOptimizing={isOptimizing}
+            onAskCopilot={handleAskCopilot}
           />
         )}
 
@@ -212,6 +251,8 @@ const apiRequest = async (path, options = {}) => {
           <CausalDAGView
             dagData={dagData}
             propensityData={propensityData}
+            onUploadDataset={handleUploadDataset}
+            apiBase={API_BASE}
           />
         )}
 
@@ -227,8 +268,11 @@ const apiRequest = async (path, options = {}) => {
           <PrescriptiveMatrixView
             optimizationData={optimizationData}
             currentBudget={currentBudget}
+            onBudgetChange={handleBudgetChange}
+            apiBase={API_BASE}
           />
         )}
+
 
         {activeTab === 'audit' && (
           <AuditDriftView
