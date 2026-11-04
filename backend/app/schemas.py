@@ -29,3 +29,42 @@ class SimulateCustomerRequest(BaseModel):
 class CopilotQuestionRequest(BaseModel):
     question: str = Field(..., description="Strategic marketing or econometrics question")
 
+class ScenarioAdjustment(BaseModel):
+    name: str = Field(..., description="Scenario name")
+    id: Optional[str] = Field(default=None, description="Scenario identifier")
+    adjustments: Dict[str, float] = Field(default={}, description="Feature multiplier adjustments e.g. {'income': 0.7}")
+
+class ScenarioRequest(BaseModel):
+    scenarios: List[ScenarioAdjustment] = Field(default=[], description="List of scenario adjustments to evaluate")
+    budget: float = Field(default=5000.0, ge=500.0, le=100000.0, description="Budget for each scenario")
+    product_price: float = Field(default=100.0, ge=10.0, le=1000.0)
+    unit_cost: float = Field(default=40.0, ge=0.0, le=500.0)
+
+class CustomerProfileRequest(BaseModel):
+    customer_id: int = Field(..., description="Customer ID to retrieve full causal profile for")
+
+class CustomerSearchRequest(BaseModel):
+    query: Optional[str] = Field(default=None, description="Search query (customer ID)")
+    archetype_filter: Optional[str] = Field(default="all", description="Filter by archetype")
+    sort_by: str = Field(default="pred_ite_20", description="Column to sort results by")
+    sort_desc: bool = Field(default=True, description="Sort descending")
+    limit: int = Field(default=50, ge=1, le=500, description="Max results to return")
+
+class ABTestRequest(BaseModel):
+    split_ratio: float = Field(default=0.5, ge=0.1, le=0.9, description="Fraction of population in Group A (Causal)")
+    budget: float = Field(default=5000.0, ge=500.0, le=100000.0, description="Total budget to split")
+    product_price: float = Field(default=100.0, ge=10.0, le=1000.0)
+    unit_cost: float = Field(default=40.0, ge=0.0, le=500.0)
+
+class CRMPreviewRequest(BaseModel):
+    platform_id: str = Field(default="klaviyo", description="CRM platform id: klaviyo, salesforce, braze, webhook")
+    segment_id: str = Field(default="persuadables_20", description="Audience segment identifier")
+    budget: float = Field(default=5000.0, ge=500.0, le=100000.0, description="Target marketing budget")
+
+class CRMDispatchRequest(BaseModel):
+    platform_id: str = Field(default="klaviyo", description="CRM platform id")
+    segment_id: str = Field(default="persuadables_20", description="Audience segment identifier")
+    target_endpoint: Optional[str] = Field(default=None, description="Custom target webhook / API endpoint")
+    api_key_masked: Optional[str] = Field(default=None, description="Masked or full API key / token")
+    budget: float = Field(default=5000.0, ge=500.0, le=100000.0, description="Target marketing budget")
+

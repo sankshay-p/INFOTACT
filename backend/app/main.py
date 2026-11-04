@@ -9,13 +9,25 @@ from fastapi.responses import Response, PlainTextResponse
 from typing import Dict, Any, Optional
 import io
 
-from app.schemas import OptimizeRequest, RetrainRequest, DriftSimulationRequest, SimulateCustomerRequest, CopilotQuestionRequest
+from app.schemas import (
+    OptimizeRequest, RetrainRequest, DriftSimulationRequest,
+    SimulateCustomerRequest, CopilotQuestionRequest,
+    ScenarioRequest, CustomerProfileRequest, CustomerSearchRequest, ABTestRequest,
+    CRMPreviewRequest, CRMDispatchRequest
+)
 from app.data_generator import generate_retail_dataset
 from app.causal_engine import CausalEngine, get_causal_dag_definition, FEATURE_COLS
 from app.propensity import compute_propensity_scores
 from app.optimization import solve_discount_optimization, simulate_customer_counterfactual
 from app.drift_detector import analyze_covariate_drift
 from app.executive_ai import generate_executive_briefing, answer_copilot_question
+from app.scenario_planner import run_scenario_analysis, get_preset_scenarios
+from app.customer_profiler import get_customer_deep_profile, search_customers
+from app.campaign_tracker import record_campaign_event, get_campaign_history, clear_campaign_history, run_ab_test
+from app.crm_export_hub import (
+    get_crm_metadata, preview_crm_export, dispatch_crm_export,
+    get_export_history, generate_segment_csv_content
+)
 
 
 app = FastAPI(
@@ -65,6 +77,21 @@ def initialize_causal_system():
     # Initial baseline optimization ($5,000 budget)
     opt = solve_discount_optimization(engine.trained_df, budget=5000.0)
     state["last_optimization"] = opt
+
+    # Record initial system event
+    opt = state["last_optimization"]
+    causal_strat = next((s for s in opt["strategy_comparison"] if "EconoCausal" in s["strategy"]), {})
+    record_campaign_event(
+        event_type="system_init",
+        description="EconoCausal Engine initialized with 2,500 observations, Random Forest DML base learner.",
+        after_metrics={
+            "incremental_profit": causal_strat.get("incremental_profit", 0),
+            "roi_percentage": causal_strat.get("roi_percentage", 0),
+            "budget": 5000.0,
+            "targeted_customers": causal_strat.get("targeted_customers", 0),
+        },
+        metadata={"n_samples": 2500, "base_learner": "random_forest"},
+    )
 
     print("EconoCausal Engine Initialized Successfully!")
 
@@ -123,6 +150,13 @@ def get_causal_summary():
 
 @app.post("/api/train-dml")
 def train_dml_endpoint(req: RetrainRequest):
+    # Capture before metrics for campaign log
+    old_opt = state["last_optimization"]
+    old_causal = next((s for s in old_opt["strategy_comparison"] if "EconoCausal" in s["strategy"]), {}) if old_opt else {}
+    before_metrics = {
+        "incremental_profit": old_causal.get("incremental_profit", 0),
+        "roi_percentage": old_causal.get("roi_percentage", 0),
+    }
     df = generate_retail_dataset(
         n_samples=req.n_samples,
         seed=42,
@@ -144,6 +178,20 @@ def train_dml_endpoint(req: RetrainRequest):
 
     # Re-run default optimization
     state["last_optimization"] = solve_discount_optimization(engine.trained_df, budget=5000.0)
+
+    # Record retrain event in campaign tracker
+    new_opt = state["last_optimization"]
+    new_causal = next((s for s in new_opt["strategy_comparison"] if "EconoCausal" in s["strategy"]), {}) if new_opt else {}
+    record_campaign_event(
+        event_type="dml_retrain",
+        description=f"DML retrained on {req.n_samples} samples using {req.base_learner} (confounding={req.confounding_strength})",
+        before_metrics=before_metrics,
+        after_metrics={
+            "incremental_profit": new_causal.get("incremental_profit", 0),
+            "roi_percentage": new_causal.get("roi_percentage", 0),
+        },
+        metadata={"n_samples": req.n_samples, "base_learner": req.base_learner},
+    )
 
     return {
         "status": "success",
@@ -169,6 +217,10 @@ def optimize_discounts(req: OptimizeRequest):
     if engine is None or engine.trained_df is None:
         raise HTTPException(status_code=500, detail="Causal model not ready")
 
+    # Before metrics for campaign log
+    old_opt = state["last_optimization"]
+    old_causal = next((s for s in old_opt["strategy_comparison"] if "EconoCausal" in s["strategy"]), {}) if old_opt else {}
+
     results = solve_discount_optimization(
         df=engine.trained_df,
         budget=req.budget,
@@ -177,6 +229,26 @@ def optimize_discounts(req: OptimizeRequest):
         discount_tiers=req.discount_tiers
     )
     state["last_optimization"] = results
+
+    # Record budget change event
+    new_causal = next((s for s in results["strategy_comparison"] if "EconoCausal" in s["strategy"]), {})
+    record_campaign_event(
+        event_type="budget_change",
+        description=f"Budget optimization re-solved at ${req.budget:,.0f}",
+        before_metrics={
+            "incremental_profit": old_causal.get("incremental_profit", 0),
+            "roi_percentage": old_causal.get("roi_percentage", 0),
+            "budget": old_opt.get("budget_limit", 5000) if old_opt else 5000,
+        },
+        after_metrics={
+            "incremental_profit": new_causal.get("incremental_profit", 0),
+            "roi_percentage": new_causal.get("roi_percentage", 0),
+            "budget": req.budget,
+            "targeted_customers": new_causal.get("targeted_customers", 0),
+        },
+        metadata={"budget": req.budget},
+    )
+
     return results
 
 @app.get("/api/drift")
@@ -321,4 +393,149 @@ def get_sample_csv():
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=EconoCausal_Sample_Campaign_Dataset.csv"}
     )
+
+# =============================================================================
+# FEATURE 1: SCENARIO PLANNER (What-If Simulator)
+# =============================================================================
+
+@app.get("/api/scenario-presets")
+def get_scenario_presets():
+    return {"presets": get_preset_scenarios()}
+
+@app.post("/api/scenario-analysis")
+def run_scenarios(req: ScenarioRequest):
+    engine = state["causal_engine"]
+    base_df = state["baseline_df"]
+    if engine is None or base_df is None:
+        raise HTTPException(status_code=500, detail="Causal model not initialized")
+
+    scenarios = [s.dict() for s in req.scenarios]
+    results = run_scenario_analysis(
+        engine=engine,
+        baseline_df=base_df,
+        scenarios=scenarios,
+        budget=req.budget,
+        product_price=req.product_price,
+        unit_cost=req.unit_cost,
+    )
+
+    record_campaign_event(
+        event_type="scenario_analysis",
+        description=f"Ran {len(scenarios)} what-if scenarios at ${req.budget:,.0f} budget",
+        after_metrics={"scenarios_evaluated": len(scenarios) + 1},
+        metadata={"scenario_names": [s["name"] for s in scenarios]},
+    )
+
+    return results
+
+# =============================================================================
+# FEATURE 2: CUSTOMER DEEP-DIVE PROFILER
+# =============================================================================
+
+@app.post("/api/customer-profile")
+def get_profile(req: CustomerProfileRequest):
+    engine = state["causal_engine"]
+    if engine is None or engine.trained_df is None:
+        raise HTTPException(status_code=500, detail="Causal model not initialized")
+    return get_customer_deep_profile(engine, engine.trained_df, req.customer_id)
+
+@app.post("/api/customer-search")
+def search_customer_list(req: CustomerSearchRequest):
+    engine = state["causal_engine"]
+    if engine is None or engine.trained_df is None:
+        raise HTTPException(status_code=500, detail="Causal model not initialized")
+    return search_customers(
+        df=engine.trained_df,
+        query=req.query,
+        archetype_filter=req.archetype_filter,
+        sort_by=req.sort_by,
+        sort_desc=req.sort_desc,
+        limit=req.limit,
+    )
+
+# =============================================================================
+# FEATURE 3: CAMPAIGN HISTORY & A/B TEST TRACKER
+# =============================================================================
+
+@app.get("/api/campaign-history")
+def get_history(limit: int = 100):
+    return get_campaign_history(limit=limit)
+
+@app.post("/api/campaign-clear")
+def clear_history():
+    return clear_campaign_history()
+
+@app.post("/api/ab-test")
+def run_ab_test_endpoint(req: ABTestRequest):
+    engine = state["causal_engine"]
+    if engine is None or engine.trained_df is None:
+        raise HTTPException(status_code=500, detail="Causal model not initialized")
+    return run_ab_test(
+        engine=engine,
+        df=engine.trained_df,
+        split_ratio=req.split_ratio,
+        budget=req.budget,
+        product_price=req.product_price,
+        unit_cost=req.unit_cost,
+    )
+
+# =============================================================================
+# FEATURE 4: CRM & MARKETING AUTOMATION EXPORT HUB
+# =============================================================================
+
+@app.get("/api/crm/metadata")
+def get_crm_meta(budget: float = 5000.0):
+    engine = state["causal_engine"]
+    if engine is None or engine.trained_df is None:
+        raise HTTPException(status_code=500, detail="Causal model not initialized")
+    return get_crm_metadata(engine, budget=budget)
+
+@app.post("/api/crm/preview")
+def preview_crm(req: CRMPreviewRequest):
+    engine = state["causal_engine"]
+    if engine is None or engine.trained_df is None:
+        raise HTTPException(status_code=500, detail="Causal model not initialized")
+    return preview_crm_export(
+        engine=engine,
+        platform_id=req.platform_id,
+        segment_id=req.segment_id,
+        budget=req.budget,
+    )
+
+@app.post("/api/crm/dispatch")
+def dispatch_crm(req: CRMDispatchRequest):
+    engine = state["causal_engine"]
+    if engine is None or engine.trained_df is None:
+        raise HTTPException(status_code=500, detail="Causal model not initialized")
+    return dispatch_crm_export(
+        engine=engine,
+        platform_id=req.platform_id,
+        segment_id=req.segment_id,
+        target_endpoint=req.target_endpoint,
+        api_key_masked=req.api_key_masked,
+        budget=req.budget,
+    )
+
+@app.get("/api/crm/history")
+def get_crm_history_endpoint():
+    return {"history": get_export_history()}
+
+@app.get("/api/crm/download-csv")
+def download_crm_csv(segment_id: str = "persuadables_20", platform_id: str = "klaviyo", budget: float = 5000.0):
+    engine = state["causal_engine"]
+    if engine is None or engine.trained_df is None:
+        raise HTTPException(status_code=500, detail="Causal model not initialized")
+    csv_str = generate_segment_csv_content(
+        engine=engine,
+        segment_id=segment_id,
+        platform_id=platform_id,
+        budget=budget,
+    )
+    filename = f"econocausal_{platform_id}_{segment_id}.csv"
+    return Response(
+        content=csv_str,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 

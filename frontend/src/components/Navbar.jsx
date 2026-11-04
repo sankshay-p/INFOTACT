@@ -1,5 +1,5 @@
 import React from 'react';
-import { Network, TrendingUp, Cpu, Sliders, ShieldCheck, RefreshCw, Sparkles } from 'lucide-react';
+import { Network, TrendingUp, Cpu, Sliders, ShieldCheck, RefreshCw, Beaker, Users, GitBranch, Send } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, auditStatus, onRefresh, isRefreshing }) {
   const navItems = [
@@ -7,6 +7,10 @@ export default function Navbar({ activeTab, setActiveTab, auditStatus, onRefresh
     { id: 'dag', label: 'Causal Graph (DoWhy DAG)', icon: Network },
     { id: 'doubleml', label: 'Double ML & Uplift Curves', icon: Cpu },
     { id: 'optimization', label: 'Prescriptive Allocation', icon: Sliders },
+    { id: 'scenarios', label: 'Scenario Planner', icon: Beaker },
+    { id: 'profiler', label: 'Customer 360° Profiler', icon: Users },
+    { id: 'campaigns', label: 'Campaigns & A/B Testing', icon: GitBranch },
+    { id: 'crm', label: 'CRM Export Hub', icon: Send },
     { id: 'audit', label: 'Refutation & Data Drift', icon: ShieldCheck }
   ];
 

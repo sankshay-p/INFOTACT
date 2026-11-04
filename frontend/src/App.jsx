@@ -4,6 +4,10 @@ import ExecutiveDashboard from './components/ExecutiveDashboard';
 import CausalDAGView from './components/CausalDAGView';
 import DoubleMLView from './components/DoubleMLView';
 import PrescriptiveMatrixView from './components/PrescriptiveMatrixView';
+import ScenarioPlannerView from './components/ScenarioPlannerView';
+import CustomerProfilerView from './components/CustomerProfilerView';
+import CampaignTrackerView from './components/CampaignTrackerView';
+import CRMExportHubView from './components/CRMExportHubView';
 import AuditDriftView from './components/AuditDriftView';
 import './App.css';
 
@@ -273,6 +277,32 @@ const apiRequest = async (path, options = {}) => {
           />
         )}
 
+        {activeTab === 'scenarios' && (
+          <ScenarioPlannerView
+            apiBase={API_BASE}
+            currentBudget={currentBudget}
+          />
+        )}
+
+        {activeTab === 'profiler' && (
+          <CustomerProfilerView
+            apiBase={API_BASE}
+          />
+        )}
+
+        {activeTab === 'campaigns' && (
+          <CampaignTrackerView
+            apiBase={API_BASE}
+            currentBudget={currentBudget}
+          />
+        )}
+
+        {activeTab === 'crm' && (
+          <CRMExportHubView
+            apiBase={API_BASE}
+            currentBudget={currentBudget}
+          />
+        )}
 
         {activeTab === 'audit' && (
           <AuditDriftView
