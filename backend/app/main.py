@@ -29,6 +29,7 @@ from app.crm_export_hub import (
     get_export_history, generate_segment_csv_content
 )
 from app.policy_tree import build_causal_policy_tree
+from app.off_policy_evaluator import compute_off_policy_evaluation
 
 
 app = FastAPI(
@@ -578,6 +579,23 @@ def download_policy_code(format: str = "sql", max_depth: int = 3, budget: float 
         media_type=content_types.get(format, "text/plain"),
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+# =============================================================================
+# FEATURE 6: DOUBLY ROBUST OFF-POLICY EVALUATION & CONTINUOUS BUDGET FRONTIER
+# =============================================================================
+
+@app.get("/api/ope/evaluation")
+def get_ope_evaluation(budget: float = 5000.0, product_price: float = 100.0, unit_cost: float = 40.0):
+    engine = state["causal_engine"]
+    if engine is None or engine.trained_df is None:
+        raise HTTPException(status_code=500, detail="Causal model not initialized")
+    return compute_off_policy_evaluation(
+        engine=engine,
+        budget=budget,
+        product_price=product_price,
+        unit_cost=unit_cost,
+    )
+
 
 
 

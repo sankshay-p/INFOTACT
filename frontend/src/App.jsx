@@ -4,6 +4,7 @@ import ExecutiveDashboard from './components/ExecutiveDashboard';
 import CausalDAGView from './components/CausalDAGView';
 import DoubleMLView from './components/DoubleMLView';
 import PrescriptiveMatrixView from './components/PrescriptiveMatrixView';
+import OffPolicyFrontierView from './components/OffPolicyFrontierView';
 import ScenarioPlannerView from './components/ScenarioPlannerView';
 import CustomerProfilerView from './components/CustomerProfilerView';
 import CampaignTrackerView from './components/CampaignTrackerView';
@@ -275,6 +276,13 @@ const apiRequest = async (path, options = {}) => {
             currentBudget={currentBudget}
             onBudgetChange={handleBudgetChange}
             apiBase={API_BASE}
+          />
+        )}
+
+        {activeTab === 'ope' && (
+          <OffPolicyFrontierView
+            apiBase={API_BASE}
+            currentBudget={currentBudget}
           />
         )}
 
