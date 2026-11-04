@@ -68,3 +68,10 @@ class CRMDispatchRequest(BaseModel):
     api_key_masked: Optional[str] = Field(default=None, description="Masked or full API key / token")
     budget: float = Field(default=5000.0, ge=500.0, le=100000.0, description="Target marketing budget")
 
+class PolicyTreeRequest(BaseModel):
+    max_depth: int = Field(default=3, ge=2, le=5, description="Maximum tree depth: 2 for simple rules, 3-4 for nuanced rules")
+    budget: float = Field(default=5000.0, ge=500.0, le=100000.0, description="Target marketing budget")
+    product_price: float = Field(default=100.0, ge=10.0, le=1000.0)
+    unit_cost: float = Field(default=40.0, ge=0.0, le=500.0)
+
+

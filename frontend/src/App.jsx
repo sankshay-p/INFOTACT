@@ -8,6 +8,7 @@ import ScenarioPlannerView from './components/ScenarioPlannerView';
 import CustomerProfilerView from './components/CustomerProfilerView';
 import CampaignTrackerView from './components/CampaignTrackerView';
 import CRMExportHubView from './components/CRMExportHubView';
+import PolicyRulesView from './components/PolicyRulesView';
 import AuditDriftView from './components/AuditDriftView';
 import './App.css';
 
@@ -287,6 +288,13 @@ const apiRequest = async (path, options = {}) => {
         {activeTab === 'profiler' && (
           <CustomerProfilerView
             apiBase={API_BASE}
+          />
+        )}
+
+        {activeTab === 'rules' && (
+          <PolicyRulesView
+            apiBase={API_BASE}
+            currentBudget={currentBudget}
           />
         )}
 

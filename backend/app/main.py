@@ -13,7 +13,7 @@ from app.schemas import (
     OptimizeRequest, RetrainRequest, DriftSimulationRequest,
     SimulateCustomerRequest, CopilotQuestionRequest,
     ScenarioRequest, CustomerProfileRequest, CustomerSearchRequest, ABTestRequest,
-    CRMPreviewRequest, CRMDispatchRequest
+    CRMPreviewRequest, CRMDispatchRequest, PolicyTreeRequest
 )
 from app.data_generator import generate_retail_dataset
 from app.causal_engine import CausalEngine, get_causal_dag_definition, FEATURE_COLS
@@ -28,6 +28,7 @@ from app.crm_export_hub import (
     get_crm_metadata, preview_crm_export, dispatch_crm_export,
     get_export_history, generate_segment_csv_content
 )
+from app.policy_tree import build_causal_policy_tree
 
 
 app = FastAPI(
@@ -537,5 +538,46 @@ def download_crm_csv(segment_id: str = "persuadables_20", platform_id: str = "kl
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+# =============================================================================
+# FEATURE 5: CAUSAL POLICY TREES & WHITE-BOX BUSINESS RULE EXPORTER
+# =============================================================================
+
+@app.post("/api/policy-tree")
+def get_policy_tree_endpoint(req: PolicyTreeRequest):
+    engine = state["causal_engine"]
+    if engine is None or engine.trained_df is None:
+        raise HTTPException(status_code=500, detail="Causal model not initialized")
+    return build_causal_policy_tree(
+        engine=engine,
+        max_depth=req.max_depth,
+        budget=req.budget,
+        product_price=req.product_price,
+        unit_cost=req.unit_cost,
+    )
+
+@app.get("/api/policy-tree/download")
+def download_policy_code(format: str = "sql", max_depth: int = 3, budget: float = 5000.0):
+    engine = state["causal_engine"]
+    if engine is None or engine.trained_df is None:
+        raise HTTPException(status_code=500, detail="Causal model not initialized")
+    tree_res = build_causal_policy_tree(engine=engine, max_depth=max_depth, budget=budget)
+    code_exports = tree_res.get("code_exports", {})
+    code = code_exports.get(format, code_exports.get("sql", ""))
+
+    content_types = {
+        "sql": "application/sql",
+        "python": "text/x-python",
+        "json": "application/json",
+    }
+    ext = "py" if format == "python" else format
+    filename = f"econocausal_policy_rules_depth{max_depth}.{ext}"
+
+    return Response(
+        content=code,
+        media_type=content_types.get(format, "text/plain"),
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 
 
