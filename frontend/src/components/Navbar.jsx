@@ -1,5 +1,5 @@
 import React from 'react';
-import { Network, TrendingUp, Cpu, Sliders, ShieldCheck, RefreshCw, Beaker, Users, GitBranch, Send, GitFork, Activity, Compass } from 'lucide-react';
+import { Network, TrendingUp, Cpu, Sliders, ShieldCheck, RefreshCw, Beaker, Users, GitBranch, Send, GitFork, Activity, Compass, ShieldAlert } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, auditStatus, onRefresh, isRefreshing }) {
   const navItems = [
@@ -14,6 +14,7 @@ export default function Navbar({ activeTab, setActiveTab, auditStatus, onRefresh
     { id: 'rules', label: 'Policy Trees & Rules', icon: GitFork },
     { id: 'campaigns', label: 'Campaigns & A/B Testing', icon: GitBranch },
     { id: 'crm', label: 'CRM Export Hub', icon: Send },
+    { id: 'sensitivity', label: 'Sensitivity Bounds', icon: ShieldAlert },
     { id: 'audit', label: 'Refutation & Data Drift', icon: ShieldCheck }
   ];
 

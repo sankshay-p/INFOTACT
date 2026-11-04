@@ -11,6 +11,7 @@ import CustomerProfilerView from './components/CustomerProfilerView';
 import CampaignTrackerView from './components/CampaignTrackerView';
 import CRMExportHubView from './components/CRMExportHubView';
 import PolicyRulesView from './components/PolicyRulesView';
+import SensitivityBoundsView from './components/SensitivityBoundsView';
 import AuditDriftView from './components/AuditDriftView';
 import './App.css';
 
@@ -324,6 +325,12 @@ const apiRequest = async (path, options = {}) => {
           <CRMExportHubView
             apiBase={API_BASE}
             currentBudget={currentBudget}
+          />
+        )}
+
+        {activeTab === 'sensitivity' && (
+          <SensitivityBoundsView
+            apiBase={API_BASE}
           />
         )}
 
