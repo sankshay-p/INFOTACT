@@ -13,7 +13,7 @@ from app.schemas import (
     OptimizeRequest, RetrainRequest, DriftSimulationRequest,
     SimulateCustomerRequest, CopilotQuestionRequest,
     ScenarioRequest, CustomerProfileRequest, CustomerSearchRequest, ABTestRequest,
-    CRMPreviewRequest, CRMDispatchRequest, PolicyTreeRequest
+    CRMPreviewRequest, CRMDispatchRequest, PolicyTreeRequest, BanditSimulateRequest
 )
 from app.data_generator import generate_retail_dataset
 from app.causal_engine import CausalEngine, get_causal_dag_definition, FEATURE_COLS
@@ -30,6 +30,7 @@ from app.crm_export_hub import (
 )
 from app.policy_tree import build_causal_policy_tree
 from app.off_policy_evaluator import compute_off_policy_evaluation
+from app.contextual_bandit import run_bandit_pricing_simulation
 
 
 app = FastAPI(
@@ -595,6 +596,26 @@ def get_ope_evaluation(budget: float = 5000.0, product_price: float = 100.0, uni
         product_price=product_price,
         unit_cost=unit_cost,
     )
+
+# =============================================================================
+# FEATURE 7: CONTEXTUAL MULTI-ARMED BANDIT DYNAMIC PRICING ENGINE
+# =============================================================================
+
+@app.post("/api/bandit/simulate")
+def simulate_bandit_endpoint(req: BanditSimulateRequest):
+    engine = state["causal_engine"]
+    if engine is None or engine.trained_df is None:
+        raise HTTPException(status_code=500, detail="Causal model not initialized")
+    return run_bandit_pricing_simulation(
+        engine=engine,
+        algorithm=req.algorithm,
+        n_steps=req.n_steps,
+        alpha=req.alpha,
+        product_price=req.product_price,
+        unit_cost=req.unit_cost,
+        seed=req.seed,
+    )
+
 
 
 

@@ -74,4 +74,13 @@ class PolicyTreeRequest(BaseModel):
     product_price: float = Field(default=100.0, ge=10.0, le=1000.0)
     unit_cost: float = Field(default=40.0, ge=0.0, le=500.0)
 
+class BanditSimulateRequest(BaseModel):
+    algorithm: str = Field(default="linucb", description="Bandit policy: linucb, thompson, epsilon_greedy")
+    n_steps: int = Field(default=500, ge=50, le=2000, description="Number of customer interactions to simulate")
+    alpha: float = Field(default=1.0, ge=0.1, le=5.0, description="Exploration bonus parameter")
+    product_price: float = Field(default=100.0, ge=10.0, le=1000.0)
+    unit_cost: float = Field(default=40.0, ge=0.0, le=500.0)
+    seed: int = Field(default=42)
+
+
 

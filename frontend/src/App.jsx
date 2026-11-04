@@ -5,6 +5,7 @@ import CausalDAGView from './components/CausalDAGView';
 import DoubleMLView from './components/DoubleMLView';
 import PrescriptiveMatrixView from './components/PrescriptiveMatrixView';
 import OffPolicyFrontierView from './components/OffPolicyFrontierView';
+import ContextualBanditView from './components/ContextualBanditView';
 import ScenarioPlannerView from './components/ScenarioPlannerView';
 import CustomerProfilerView from './components/CustomerProfilerView';
 import CampaignTrackerView from './components/CampaignTrackerView';
@@ -283,6 +284,12 @@ const apiRequest = async (path, options = {}) => {
           <OffPolicyFrontierView
             apiBase={API_BASE}
             currentBudget={currentBudget}
+          />
+        )}
+
+        {activeTab === 'bandit' && (
+          <ContextualBanditView
+            apiBase={API_BASE}
           />
         )}
 
